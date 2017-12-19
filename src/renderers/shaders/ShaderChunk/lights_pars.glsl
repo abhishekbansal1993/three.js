@@ -51,6 +51,8 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 		float shadowBias;
 		float shadowRadius;
 		vec2 shadowMapSize;
+		float shadowCameraNear;
+		float shadowCameraFar;
 	};
 
 	uniform PointLight pointLights[ NUM_POINT_LIGHTS ];
@@ -172,13 +174,11 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 	vec3 getLightProbeIndirectIrradiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in int maxMIPLevel ) {
 
-		#include <normal_flip>
-
 		vec3 worldNormal = inverseTransformDirection( geometry.normal, viewMatrix );
 
 		#ifdef ENVMAP_TYPE_CUBE
 
-			vec3 queryVec = flipNormal * vec3( flipEnvMap * worldNormal.x, worldNormal.yz );
+			vec3 queryVec = vec3( flipEnvMap * worldNormal.x, worldNormal.yz );
 
 			// TODO: replace with properly filtered cubemaps and access the irradiance LOD level, be it the last LOD level
 			// of a specular cubemap, or just the default level of a specially created irradiance cubemap.
@@ -198,7 +198,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 		#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-			vec3 queryVec = flipNormal * vec3( flipEnvMap * worldNormal.x, worldNormal.yz );
+			vec3 queryVec = vec3( flipEnvMap * worldNormal.x, worldNormal.yz );
 			vec4 envMapColor = textureCubeUV( queryVec, 1.0 );
 
 		#else
@@ -218,7 +218,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 		//float desiredMIPLevel = log2( envMapWidth * sqrt( 3.0 ) ) - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
 
 		float maxMIPLevelScalar = float( maxMIPLevel );
-		float desiredMIPLevel = maxMIPLevelScalar - 0.79248 - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
+		float desiredMIPLevel = maxMIPLevelScalar + 0.79248 - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
 
 		// clamp to allowable LOD ranges.
 		return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
@@ -237,15 +237,13 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 		#endif
 
-		#include <normal_flip>
-
 		reflectVec = inverseTransformDirection( reflectVec, viewMatrix );
 
 		float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
 		#ifdef ENVMAP_TYPE_CUBE
 
-			vec3 queryReflectVec = flipNormal * vec3( flipEnvMap * reflectVec.x, reflectVec.yz );
+			vec3 queryReflectVec = vec3( flipEnvMap * reflectVec.x, reflectVec.yz );
 
 			#ifdef TEXTURE_LOD_EXT
 
@@ -261,14 +259,14 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 		#elif defined( ENVMAP_TYPE_CUBE_UV )
 
-			vec3 queryReflectVec = flipNormal * vec3( flipEnvMap * reflectVec.x, reflectVec.yz );
+			vec3 queryReflectVec = vec3( flipEnvMap * reflectVec.x, reflectVec.yz );
 			vec4 envMapColor = textureCubeUV(queryReflectVec, BlinnExponentToGGXRoughness(blinnShininessExponent));
 
 		#elif defined( ENVMAP_TYPE_EQUIREC )
 
 			vec2 sampleUV;
-			sampleUV.y = saturate( flipNormal * reflectVec.y * 0.5 + 0.5 );
-			sampleUV.x = atan( flipNormal * reflectVec.z, flipNormal * reflectVec.x ) * RECIPROCAL_PI2 + 0.5;
+			sampleUV.y = asin( clamp( reflectVec.y, - 1.0, 1.0 ) ) * RECIPROCAL_PI + 0.5;
+			sampleUV.x = atan( reflectVec.z, reflectVec.x ) * RECIPROCAL_PI2 + 0.5;
 
 			#ifdef TEXTURE_LOD_EXT
 
@@ -284,7 +282,7 @@ vec3 getAmbientLightIrradiance( const in vec3 ambientLightColor ) {
 
 		#elif defined( ENVMAP_TYPE_SPHERE )
 
-			vec3 reflectView = flipNormal * normalize( ( viewMatrix * vec4( reflectVec, 0.0 ) ).xyz + vec3( 0.0,0.0,1.0 ) );
+			vec3 reflectView = normalize( ( viewMatrix * vec4( reflectVec, 0.0 ) ).xyz + vec3( 0.0,0.0,1.0 ) );
 
 			#ifdef TEXTURE_LOD_EXT
 

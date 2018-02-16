@@ -295,18 +295,19 @@ Menubar.File = function ( editor ) {
 
 			if ( config.getKey( 'project/editable' ) ) {
 
-				editButton = `
-			var button = document.createElement( 'a' );
-			button.href = 'https://threejs.org/editor/#file=' + location.href.split( '/' ).slice( 0, - 1 ).join( '/' ) + '/app.json';
-			button.style.cssText = 'position: absolute; bottom: 20px; right: 20px; padding: 12px 14px; color: #fff; border: 1px solid #fff; border-radius: 4px; text-decoration: none;';
-			button.target = '_blank';
-			button.textContent = 'EDIT';
-			document.body.appendChild( button );
-				`;
-
+				editButton = [
+					'',
+					'			var button = document.createElement( \'a\' );',
+					'			button.href = \'https://threejs.org/editor/#file=\' + location.href.split( \'/\' ).slice( 0, - 1 ).join( \'/\' ) + \'/app.json\';',
+					'			button.style.cssText = \'position: absolute; bottom: 20px; right: 20px; padding: 12px 14px; color: #fff; border: 1px solid #fff; border-radius: 4px; text-decoration: none;\';',
+					'			button.target = \'_blank\';',
+					'			button.textContent = \'EDIT\';',
+					'			document.body.appendChild( button );',
+					''
+				].join( '\n' );
 			}
 
-			content = content.replace( '/* edit button */', editButton );
+			content = content.replace( '\n\t\t\t/* edit button */\n', editButton );
 
 			zip.file( 'index.html', content );
 
@@ -334,27 +335,6 @@ Menubar.File = function ( editor ) {
 
 	} );
 	options.add( option );
-
-	/*
-	// Publish (Dropbox)
-
-	var option = new UI.Row();
-	option.setClass( 'option' );
-	option.setTextContent( 'Publish (Dropbox)' );
-	option.onClick( function () {
-
-		var parameters = {
-			files: [
-				{ 'url': 'data:text/plain;base64,' + window.btoa( "Hello, World" ), 'filename': 'app/test.txt' }
-			]
-		};
-
-		Dropbox.save( parameters );
-
-	} );
-	options.add( option );
-	*/
-
 
 	//
 

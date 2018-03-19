@@ -835,7 +835,7 @@ function WebGLRenderer( parameters ) {
 
 	};
 
-	function setupVertexAttributes( material, program, geometry, startIndex ) {
+	function setupVertexAttributes( material, program, geometry ) {
 
 		if ( geometry && geometry.isInstancedBufferGeometry ) {
 
@@ -847,8 +847,6 @@ function WebGLRenderer( parameters ) {
 			}
 
 		}
-
-		if ( startIndex === undefined ) startIndex = 0;
 
 		state.initAttributes();
 
@@ -904,7 +902,7 @@ function WebGLRenderer( parameters ) {
 						}
 
 						_gl.bindBuffer( _gl.ARRAY_BUFFER, buffer );
-						_gl.vertexAttribPointer( programAttribute, size, type, normalized, stride * bytesPerElement, ( startIndex * stride + offset ) * bytesPerElement );
+						_gl.vertexAttribPointer( programAttribute, size, type, normalized, stride * bytesPerElement, offset * bytesPerElement );
 
 					} else {
 
@@ -925,7 +923,7 @@ function WebGLRenderer( parameters ) {
 						}
 
 						_gl.bindBuffer( _gl.ARRAY_BUFFER, buffer );
-						_gl.vertexAttribPointer( programAttribute, size, type, normalized, 0, startIndex * size * bytesPerElement );
+						_gl.vertexAttribPointer( programAttribute, size, type, normalized, 0, 0 );
 
 					}
 
@@ -1975,6 +1973,8 @@ function WebGLRenderer( parameters ) {
 			uniforms.reflectivity.value = material.reflectivity;
 			uniforms.refractionRatio.value = material.refractionRatio;
 
+			uniforms.maxMipLevel.value = properties.get( material.envMap ).__maxMipLevel;
+
 		}
 
 		if ( material.lightMap ) {
@@ -2566,11 +2566,25 @@ function WebGLRenderer( parameters ) {
 
 		var width = texture.image.width;
 		var height = texture.image.height;
-		var internalFormat = utils.convert( texture.format );
+		var glFormat = utils.convert( texture.format );
 
 		this.setTexture2D( texture, 0 );
 
-		_gl.copyTexImage2D( _gl.TEXTURE_2D, level || 0, internalFormat, position.x, position.y, width, height, 0 );
+		_gl.copyTexImage2D( _gl.TEXTURE_2D, level || 0, glFormat, position.x, position.y, width, height, 0 );
+
+	};
+
+	this.copyTextureToTexture = function ( position, srcTexture, dstTexture, level ) {
+
+		var width = srcTexture.image.width;
+		var height = srcTexture.image.height;
+		var glFormat = utils.convert( dstTexture.format );
+		var glType = utils.convert( dstTexture.type );
+		var pixels = srcTexture.isDataTexture ? srcTexture.image.data : srcTexture.image;
+
+		this.setTexture2D( dstTexture, 0 );
+
+		_gl.texSubImage2D( _gl.TEXTURE_2D, level || 0, position.x, position.y, width, height, glFormat, glType, pixels );
 
 	};
 
